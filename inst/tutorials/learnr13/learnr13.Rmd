@@ -1,0 +1,284 @@
+---
+title: "Week 13 - Causal Inference"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: false
+    css: "css/learnr-theme.css"
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(learnrhash)
+library(tidyverse)
+library(broom)
+library(texreg)
+library(highlight)
+library(gradethis)
+library(QM2022)
+
+gradethis::gradethis_setup()
+data(df_learnr13_eu_accession)
+#load("df_learnr13_eu_accession.rda") # for local testing
+```
+
+## Introduction
+
+This learnr tutorial revolves around **how accession to the European Union (EU) affects citizens' anti-authoritarian attitudes**. Before you'll begin to work with the data, you'll answer some questions to revise what you have learned this week.
+
+
+## Questions
+
+```{r q1, echo = FALSE}
+question("What is a problem for causal inference with observational data?",
+  answer("The observed difference in outcomes might be caused by confounders instead of the treatment.", correct = T),
+  answer("The treatment does not work because of confounders.", 
+         message = "Think about the role of confounders in analyses of observational data. The treatment may work, but we do not know what influence the confounders have had. Have a look at the lecture material again."),
+  answer("Observational data does not tell us which unit is from the treatment and the control group.", 
+         message = "Whether a unit belongs to the treatment or the control group depends on the value it takes for the main independent variable, the treatment. Have a look at the lecture material again."),
+  random_answer_order = TRUE,
+  allow_retry = TRUE
+)
+```
+
+###
+
+```{r q2, echo = FALSE}
+question("What is the identification strategy for difference-in-differences designs?",
+  answer("The treatment group's change over time in absence of the treatment is equal to the control group's change over time.", 
+         correct = T),
+  answer("The outcome for the treatment group in absence of the treatment is identical to the outcome of the control group.", 
+         message = "Not quite. While we use the outcome of the control group when calculating the difference-in-differences estimate, we do not assume that the treatment group's outcome is identical to the control group's outcome. Have a look at the lecture material again."),
+  answer("The average causal effect is the difference in the treatment group's outcome before and after the treatment.", 
+         message = "In a before-and-after design, we calculate the different in the treatment group's outcome before and after the treatment. However, this does not necessarily allow us to interpret the difference as causal as there might be time-varying confounders. Have a look at the lecture material again."),
+  random_answer_order = TRUE,
+  allow_retry = T
+)
+```
+
+## Data
+
+Take a look at the data set for this learnr tutorial (`eu_accession`). As always, the data set is already loaded into the environment and contains the following variables:
+
+| Variable name |  Description
+|:--------------|:--------------------------------
+| `wave` | Time frame indicating the period of observation
+| `countryname` |Country name
+| `cntrymean_antiauth` | Anti-authoritarianism score
+| `EU` | EU membership (1 = EU member, 0 = no EU member)
+
+Use the code chunk below, to explore the data set.
+
+```{r inspect-data, exercise=TRUE}
+
+```
+
+<div id="inspect-data-hint">
+**Hint:** You may want to use functions like `glimpse()`, `head()`, `names()`, `dim()`, `nrow()` or `ncol()` or some of the **dplyr** functions we learned about in the course.
+</div>
+
+## Exercises
+
+As you'll explore changes in anti-authoritarian attitudes, start by calculating the average degree of anti-authoritarianism (`cntrymean_antiauth`) among EU members and non-EU members (`EU`) in the 2008-2010 time period (`wave`). Please round to the second digit after the decimal.
+
+```{r exercise1-sol, eval=FALSE, include=FALSE}
+eu_accession %>% filter(wave == "2008-2010" & EU == 1) %>% summarise(mean = round(mean(cntrymean_antiauth), 2))
+eu_accession %>% filter(wave == "2008-2010" & EU == 0) %>% summarise(mean = round(mean(cntrymean_antiauth), 2))
+
+# or
+eu_accession %>% filter(wave == "2008-2010") %>% group_by(EU) %>% summarise(mean = round(mean(cntrymean_antiauth), 2))
+```
+
+
+```{r exercise1, exercise = TRUE}
+
+```
+
+```{r q3, echo = FALSE}
+question_text("What is the average degree of anti-authoritarianism among EU members in 2008-2010?",
+  answer("75.69", correct = T),
+  answer("75.7", correct = T),
+  answer("75.70", correct = T),
+  allow_retry = TRUE,
+  incorrect = "Have you selected the relevant observations with \"filter()\" and calculated the average across all those observations using the \"mean()\" function?"
+)
+```
+
+```{r q4, echo = FALSE}
+question_text("And what about the average degree of anti-authoritarianism among non-EU members in the same time frame?",
+  answer("67.2", correct = T),
+  answer("67.18", correct = T),
+  answer("67.20", correct = T),
+  allow_retry = TRUE,
+  incorrect = "Have you selected the relevant observations with \"filter()\" and calculated the average across all those observations using the \"mean()\" function?"
+
+)
+```
+
+###
+
+In the next few tasks, you'll calculate the causal effect of EU membership on anti-authoritarian attitudes of citizens using a difference-in-differences design. In particular, you will calculate the causal effect of EU accession on anti-authoritarian values for Romania (= *treatment unit*) compared to Albania (= *control unit*). Based on the parallel trends assumption, you can assume that anti-authoritarian attitudes would have developed similarly in both countries in the absence of Romania's EU accession.
+
+Calculate the change in anti-authoritarian values for Romania between 2008-2010 and 1999-2004. Round to two digits after the decimal. 
+
+```{r exercise2-sol, eval=FALSE, include=FALSE}
+eu_accession %>% 
+  # Filter for treatment unit
+  filter(countryname == "Romania") %>% 
+  # Filter for pre- and post-treatment period
+  filter(wave == "1999-2004" | wave == "2008-2010") %>% 
+  # Pivot data into wide format to facilitate calculations
+  pivot_wider(names_from = "wave",
+              values_from = "cntrymean_antiauth") %>%
+  # Calculate difference within unit
+  mutate(difference_within = round(`2008-2010` - `1999-2004`, 2))
+```
+
+```{r exercise2, exercise = TRUE}
+
+```
+
+```{r q5, echo = FALSE}
+question_text("Enter the change in anti-authoritarian values for Romania between 2008-2010 and 1999-2004, rounded to two digits after the decimal, here.",
+  answer("0.32", correct = T),
+  allow_retry = TRUE,
+  incorrect = "Following what we have done in the lab, calculate the values of \"cntrymean_antiauth\" for Romania for these two waves and subtract them from each other."
+)
+```
+
+###
+
+Now, calculate the change in anti-authoritarian values for Albania between 2008-2010 and 1999-2004. Round to two digits after the decimal.
+
+```{r exercise3-sol, eval=FALSE, include=FALSE}
+eu_accession %>% 
+  # Filter for control unit
+  filter(countryname == "Albania") %>% 
+  # Filter for pre- and post-treatment period
+  filter(wave == "1999-2004" | wave == "2008-2010") %>% 
+  # Pivot data into wide format to facilitate calculations
+  pivot_wider(names_from = "wave",
+              values_from = "cntrymean_antiauth") %>%
+  # Calculate difference within unit
+  mutate(difference_within = round(`2008-2010` - `1999-2004`, 2))
+```
+
+```{r exercise3, exercise = TRUE}
+
+```
+
+```{r q6, echo = FALSE}
+question_text("Enter the change in anti-authoritarian values for Albania between 2008-2010 and 1999-2004, rounded to two digits after the decimal, here.",
+  answer("-4.77", correct = T),
+  allow_retry = TRUE,
+  incorrect = "Following what we have done in the lab, calculate the values of \"cntrymean_antiauth\" for Albania for these two waves and subtract them from each other."
+)
+```
+
+###
+
+Next, calculate the average treatment effect for the treated, i.e. the average treatment effect of EU accession for Romania. Based on the two previous exercises you already have all the information you need: the difference in anti-authoritarian values over time for Romania and the difference in anti-authoritarian values over time for Albania. Alternatively, the within-unit differences are already stored in a variable called `difference_within` in two objects called `romania` and `albania`. You can access the values with `romania$difference_within` and `albania$difference_within`.
+
+```{r exercise4-setup}
+romania <- eu_accession %>% 
+  # Filter for treatment unit
+  filter(countryname == "Romania") %>% 
+  # Filter for pre- and post-treatment period
+  filter(wave == "1999-2004" | wave == "2008-2010") %>% 
+  # Pivot data into wide format to facilitate calculations
+  pivot_wider(names_from = "wave",
+              values_from = "cntrymean_antiauth") %>%
+  # Calculate difference within unit
+  mutate(difference_within = round(`2008-2010` - `1999-2004`, 2))
+
+albania <- eu_accession %>% 
+  # Filter for control unit
+  filter(countryname == "Albania") %>% 
+  # Filter for pre- and post-treatment period
+  filter(wave == "1999-2004" | wave == "2008-2010") %>% 
+  # Pivot data into wide format to facilitate calculations
+  pivot_wider(names_from = "wave",
+              values_from = "cntrymean_antiauth") %>%
+  # Calculate difference within unit
+  mutate(difference_within = round(`2008-2010` - `1999-2004`, 2))
+```
+
+```{r exercise4-sol, eval=FALSE, include=FALSE}
+romania$difference_within - albania$difference_within
+```
+
+
+```{r exercise4, exercise = TRUE, exercise.setup = "exercise4-setup"}
+
+
+```
+
+```{r q8, echo = FALSE}
+question_text(
+  "What is the average treatment effect of EU accession for Romania? Round to two digits after the decimal",
+  answer("5.09", correct = T),
+  allow_retry = TRUE,
+  incorrect = "The average treatment effect for the treated (in this case, Romania) is the difference between the change in outcomes for the treatment unit (Romania) and the change in outcomes for the control unit (Albania)."
+)
+```
+
+```{r q9, echo = FALSE}
+question("Does this mean that anti-authoritarian attitudes in Romania have increased or decreased due to EU accession?",
+  answer("increased", correct = T),
+  answer("decreased"),
+  random_answer_order = FALSE,
+  allow_retry = T,
+  incorrect = "Think about what the treatment effect means. Is it positive or negative?"
+)
+```
+
+###
+
+In a final step, use a difference-in-differences regression model to analyze the effect of EU accession on anti-authoritarianism. The subset of the data that you'll use as well as the treatment time and treatment group are already specified in the code chunk below. All you need to do is to add the regression model.
+
+```{r exercise5-sol, eval=FALSE, include=FALSE}
+lm(cntrymean_antiauth ~ treatment_time*treatment_group, data = did_data) %>%
+  broom::tidy() %>%
+  filter(term == "treatment_time:treatment_group")
+```
+
+```{r exercise5, exercise=TRUE}
+did_data <- eu_accession %>% 
+  tibble() %>%
+  filter(countryname %in% c("Romania", "Albania", "Finland", "Ukraine", "Switzerland")) %>%
+  mutate(treatment_time = ifelse(wave == "2008-2010", 1, 0),
+         treatment_group = ifelse(countryname == "Romania", 1, 0))
+```
+
+```{r q10, echo=FALSE}
+question("Which countries form the control group?",
+  answer("Albania, Finland, Ukraine and Switzerland", correct = T),
+  answer("Romania", 
+         message = "Romania is the treatment unit as it has become an EU member between the two time points."),
+  answer("Albania", 
+         message = "Albania is one of the control units, but not the only one. Have a look at the other countries that were selected."),
+  random_answer_order = TRUE,
+  allow_retry = TRUE,
+  incorrect = "Inspect the code chunk above."
+)
+```
+
+```{r q11, echo=FALSE}
+question_text("The average treatment effect of EU accession based on the regression model is...",
+  answer("-8.23", correct = T),
+  allow_retry = TRUE,
+  incorrect = "Have you specified the data and the model correctly? Have you rounded to two digits after the decimal?"
+)
+```
+
+
+## Submit
+
+```{r context="server"}
+learnrhash::encoder_logic(strip_output = TRUE)
+```
+
+```{r encode, echo=FALSE}
+learnrhash::encoder_ui(default_ui(url ="https://ilias.uni-mannheim.de/goto.php?target=svy_1245813&client_id=ILIAS"))
+```

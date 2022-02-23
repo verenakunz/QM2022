@@ -1,0 +1,240 @@
+---
+title: "Week 14 - Logistic Regression"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: false
+    css: "css/learnr-theme.css"
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(learnrhash)
+library(tidyverse)
+library(highlight)
+library(gradethis)
+library(texreg)
+library(broom)
+library(QM2022)
+
+gradethis::gradethis_setup()
+
+data(df_learnr14_brexit)
+#load("df_learnr14_brexit.rda") # for local testing
+```
+
+## Introduction
+
+In this learnr tutorial you'll continue to replicate some of the results of Sarah Hobolt's (2016) paper: "The Brexit vote: a divided nation, a divided continent", centred around the study of the determinants of voting behaviour in the 2016 EU referendum in the United Kingdom. 
+
+As voting "Leave" or "Remain" is a binary variable, we'll need a logistic regression model to explore the determinants. So let's begin by revising some of this week's information on this family of regression models.
+
+
+## Questions
+
+```{r q1, echo = FALSE}
+question("Why is it useful to rely on logistic instead of linear regression to model voting behaviour in the referendum?",
+  answer("Because predicted values may fall outside the logical boundaries of 0 and 1.", correct = T),
+  answer("Because the variance of the dependent variable is not large enough."),
+  answer("Because we cannot calculate a mean for the dependent variable."),
+  answer("Because the standard deviation of the dependent variable equals its mean."),
+  random_answer_order = TRUE,
+  allow_retry = T,
+  incorrect = "What happens when we model a binary dependent variable using linear regression? If you can't remember, go back to the beginning of this week's lecture."
+)
+```
+
+###
+
+```{r q2, echo = FALSE}
+question("Why do we need a link function for logistic regression analyses?",
+  answer("Because we want to predict probabilities that only range between 0 and 1.", correct = T),
+  answer("Because the variance needs to be logged in order to obtain predictions."),
+  answer("Because logistic regression models analyze the responses of people participating in surveys.", message = "They do sometimes, but that does not affect the need for a link function."),
+  answer("Because that makes the derivation of the maximum likelihood easier."),
+  random_answer_order = TRUE,
+  allow_retry = T,
+  incorrect = "Consider the special characteristic of dependent variables in logistic regressions."
+)
+```
+
+
+## Exercises
+
+The data set for this tutorial is stored in an object called `brexit`, which is already loaded into your environment. In this tutorial, we're interested in the relationship between identifying as a European and voting "Leave" in the Brexit referendum.
+
+Begin by calculating the median values of European identity (`EuropeanIdentity`) for "Leave" and "Remain" voters (`LeaveVote`).
+
+```{r exercise-1-sol, include=FALSE, eval=FALSE}
+brexit %>%
+  group_by(LeaveVote) %>%
+  summarize(median = median(EuropeanIdentity))
+```
+
+```{r exercise-1, exercise=TRUE}
+
+```
+
+```{r exercise-1-q1, echo=FALSE}
+question_text("What is the median value of European identity for \"Leave\" voters?",
+              answer("2", correct = TRUE),
+              allow_retry = TRUE,
+              incorrect = "Use \"filter()\" or \"group_by\" to calculate the median of European identity for each of the two subsamples.")
+```
+
+```{r exercise-1-q2, echo=FALSE}
+question_text("What is the median value of European identity for \"Remain\" voters?",
+              answer("5", correct = TRUE),
+              allow_retry = TRUE,
+              incorrect = "Use \"filter()\" or \"group_by\" to calculate the median of European identity for each of the two subsamples.")
+```
+
+###
+
+Hence, we can conclude that in our sample "Remain" voters identified as European to a much higher degree than "Leave" voters. Let's explore this relationship using a logistic regression model, adding `age`, `female`, `edlevel`, `hhincome`, `EnglishIdentity` and `BritishIdentity` as control variables. Use the `glm()` function and don't forget to specify the correct link function. 
+
+```{r exercise-2-sol, include=FALSE, eval=FALSE}
+model <- glm(LeaveVote ~ EuropeanIdentity + age + female + edlevel + hhincome + EnglishIdentity + BritishIdentity,
+             data = brexit,
+             family = binomial(link = "logit"))
+
+model %>% 
+  tidy() %>%
+  filter(term == "EuropeanIdentity") %>%
+  select(estimate) %>%
+  round(2)
+```
+
+```{r exercise-2, exercise=TRUE}
+
+```
+
+```{r q5, echo = FALSE}
+question_text("What is the coefficient for `EuropeanIdentity`? Round to two digits after the decimal.",
+  answer("-0.80", correct = TRUE),
+  allow_retry = TRUE,
+  incorrect = "Have you correctly specified the regression model?"
+)
+```
+
+```{r q6, echo = FALSE}
+question("What does the coefficient for `EuropeanIdentity` tell us?",
+  answer("That people identifying as more European are less likely to vote \"Leave\".", correct = TRUE),
+  answer("That people identifying as more European are more likely to vote \"Leave\"."),
+  answer("We cannot make any statement about whether people identifying as more European are more or less likely to vote \"Leave\"."),
+  #random_answer_order = TRUE,
+  allow_retry = TRUE,
+  incorrect = "While interpreting the substantial size of the relationships directly from the regression table is a little tricky for logistic regression models, we can interpret the direction of the relationship. Is it positive or negative?"
+)
+```
+
+###
+
+As interpreting the substantial size of any effects directly from the regression table is a little tricky for logistic regression models, we usually resort to calculating predicted probabilities. In the next exercises, you'll compute predicted probabilities of voting "Leave" and the corresponding confidence intervals for the minimum and maximum values of European identity based on the regression model you specified above. You can either respecify the regression model in the chunks below or use the object `model`, which already stores the results of the logistic model.
+
+When computing predicted probabilities and deciding which variables to keep constant at their mean or median, keep in mind that all variables apart from age are categorical or ordinal, even though R has imported them as numeric variables.
+
+Begin with calculating the predicted probability and confidence intervals for the highest value of European identity, holding all other variables constant.
+
+```{r exercise-setup}
+model <- glm(LeaveVote ~ EuropeanIdentity + age + female + edlevel + hhincome + EnglishIdentity + BritishIdentity,
+             data = brexit,
+             family = binomial(link = "logit"))
+```
+
+```{r exercise-3-sol, include=FALSE, eval=FALSE}
+scenario_high <- tibble(
+  EuropeanIdentity = max(brexit$EuropeanIdentity),
+  age = mean(brexit$age),
+  female = median(brexit$female),
+  edlevel = median(brexit$edlevel),
+  hhincome = median(brexit$hhincome),
+  EnglishIdentity = median(brexit$EnglishIdentity),
+  BritishIdentity = median(brexit$BritishIdentity)
+)
+
+pred_prob_high <- predict(model,
+                          newdata = scenarios_high,
+                          type = "response",
+                          se.fit = TRUE)
+
+pred_prob_high <- pred_prob_high %>%
+  as_tibble() %>%
+  mutate(lower = fit - 1.96 * se.fit,
+         upper = fit + 1.96 * se.fit)
+
+round(pred_prob_high$fit, 2)
+```
+
+```{r exercise-3, exercise=TRUE, exercise.setup="exercise-setup"}
+
+```
+
+```{r q7, echo=FALSE}
+question_text("What is the predicted probability of voting \"Leave\" for such voters? Round to two digits after the decimal.",
+  answer("0.06", correct = T),
+  allow_retry = TRUE,
+  incorrect = "In case you received a prediction of 0.049/0.05, make sure that you set the categorical and ordinal variables to their medians. Otherwise, have a look at the lab material to revise how to specify a scenario and compute predicted probabilities and confidence intervals."
+)
+```
+
+Next, calculate the predicted probability and confidence intervals, this time for the lowest value of European identity, holding everything else at its mean or median.
+
+```{r exercise-4-sol, include=FALSE, eval=FALSE}
+scenario_low <- tibble(
+  EuropeanIdentity = min(brexit$EuropeanIdentity),
+  age = mean(brexit$age),
+  female = median(brexit$female),
+  edlevel = median(brexit$edlevel),
+  hhincome = median(brexit$hhincome),
+  EnglishIdentity = median(brexit$EnglishIdentity),
+  BritishIdentity = median(brexit$BritishIdentity)
+)
+
+pred_prob_low <- predict(model,
+                         newdata = scenario_low,
+                         type = "response",
+                         se.fit = TRUE)
+
+pred_prob_low <- pred_prob_low %>%
+  as_tibble() %>%
+  mutate(lower = fit - 1.96 * se.fit,
+         upper = fit + 1.96 * se.fit)
+
+round(pred_prob_low$fit, 2)
+```
+
+```{r exercise4, exercise=TRUE, exercise.setup="exercise-setup"}
+
+```
+
+```{r q8, echo=FALSE}
+question_text("What is the predicted probability for those individuals? Again, round to two digits after the decimal.",
+  answer("0.88", correct = T),
+  allow_retry = TRUE,
+  incorrect = "The calculation is the same as in the previous exercise, only the value for European identity has to be changed when specifying the scenario. In case you received a prediction of 0.86, make sure that you set the categorical and ordinal variables to their medians."
+)
+```
+
+```{r q9, echo = FALSE}
+question("What do these predictions tell you?",
+  answer("People who identify with Europe a lot have a lower probability of voting \"Leave\" than those who do not, holding everything else at their respective mean or median.", correct = T),
+  answer("People who identify with Europe a lot have a lower probability of voting \"Leave\" than those who do not."),
+  answer("We cannot say anything about the relationship between high and low identification with Europe and voting \"Leave\" because the difference is not statistically significant."),
+  answer("People who identify with Europe a lot have a higher probability of voting \"Leave\" than those who do not."),
+  random_answer_order = TRUE,
+  allow_retry = T,
+  incorrect = "Compare the predicted probabilities and the confidence intervals around them."
+)
+```
+
+## Submission
+
+```{r context="server"}
+learnrhash::encoder_logic(strip_output = TRUE)
+```
+
+```{r encode, echo=FALSE}
+learnrhash::encoder_ui(default_ui(url = "https://ilias.uni-mannheim.de/goto.php?target=svy_1245814&client_id=ILIAS"))
+```
