@@ -16,7 +16,7 @@ gradethis::gradethis_setup(exercise.reveal_solution = FALSE)
 library(tidyverse)
 library(QM2022)
 #load("df_learnr06_opposition.rda") # for local testing
-data(df_learnr06_opposition.rda) 
+data(df_learnr06_opposition) 
 ```
 
 ## Introduction
