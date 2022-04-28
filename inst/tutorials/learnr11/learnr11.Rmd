@@ -121,7 +121,7 @@ out_ia <- lm(conflict_p ~ seatshare*ge + abs_lrdiff + govside + inst_power +
                 data = opposition)
 ```
 
-```{r predict, exercise = TRUE, exercise.setup = "lm_1"}
+```{r predict, exercise = TRUE, exercise.setup = "predict-setup"}
 
 ```
 

@@ -292,7 +292,7 @@ Please provide an interpretation of the estimated regression coefficient.
 question("What does the coefficient estimate tell us about the relationship between seat share and the share of opposing votes to the government?",
   answer("A one unit increase in seat share is associated with an increase of about 56% in votes against the government.", correct = F, message = "Keep in mind that reporting increases in percent is a relative measure. However, the dependent variable is measured in percentage points."),
     answer("A one unit increase in seat share causes an increase in votes against the government of about 56 percentage points.", correct = F, message = "Be careful when making causal statements. Saying increases in seat share cause an increase in votes would only hold if you assume that there are no confounders, i.e. no unobserved factors that affect both the size of a party in parliament and its behaviour vis-a-vis the government. Without randomization or further control variables, this seems not realistic to hold in practice."),
-  answer("An increase of one percentage point in vote share is associated with a an increase of about 0.56 percentage points in the the share of votes against the government.", correct = T),
+  answer("An increase of one percentage point in seat share is associated with a an increase of about 0.56 percentage points in the the share of votes against the government.", correct = T),
     answer("We expect an increase of about 56 percentage points in the share of votes against the government when the seat share variable increases by one unit.", correct = T),
   random_answer_order = TRUE,
   allow_retry = T

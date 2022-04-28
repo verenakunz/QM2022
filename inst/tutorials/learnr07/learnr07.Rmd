@@ -188,7 +188,7 @@ question_text(
 
 ## Interpreting binary variables
 
-Usually, we should be very carefully interpreting control variables by themselves, at least if we didn't spent much time thinking about potential confounders affecting the relationship between a particular control variable and the outcome of interest. For more details on this topic, check out this great overview essay, "The Causal Interpretation of Estimated Associations in Regression Models", by Keele et al. (2019) which is available here: https://doi.org/10.1017/psrm.2019.31
+Usually, we should be very carefully interpreting control variables by themselves, at least if we didn't spend much time thinking about potential confounders affecting the relationship between a particular control variable and the outcome of interest. For more details on this topic, check out this great overview essay, "The Causal Interpretation of Estimated Associations in Regression Models", by Keele et al. (2019) which is available here: https://doi.org/10.1017/psrm.2019.31
 
 
 **In this case, however, you are required to make an exception and provide an interpretation of the estimate for `govtype_mod` from the regression model that you ran above.**
